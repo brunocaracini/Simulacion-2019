@@ -1,11 +1,21 @@
 from random import randint
 
 #PARAMETROS A CAMBIAR
-n = 20
-v = True #modo verboso
+n = 10000
+v = False #modo verboso
 
 #Generamos la data
 data = [randint(0,1000)/1000 for i in range(n)]
+
+#vectores a y b provistos en el pdf
+a = [[4529.4, 9044.9, 13568, 18091, 22615, 27892],
+     [9044.9, 18097, 27139, 36187, 45234, 55789],
+     [13568, 27139, 40721, 54281, 67852, 83685],
+     [18091, 36187, 54281, 72414, 90470, 111580],
+     [22615, 45234, 67852, 90470, 113262, 139476],
+     [27892, 55789, 83685, 111580, 139476, 172860]]
+
+b = [1/6,5/24,11/120,19/720,29/5040,1/840]
 
 ######## 1 ########
 def get_subs(data):
@@ -43,11 +53,30 @@ def get_subs(data):
     return subs
     
 ######## 2 ########
+#Generamos arreglo r donde
+#r[i] es igual a la cantidad de subsecuencias de largo i, si i < 6
+#y r[6] es igual a la cantidad de subsecuencas de largo mayor a 6
 def get_r(subs):
-    less_than_six = 0
-    more_than_or_six = 0
+    r = [0 for i in range(6)]
     for key in subs:
         if int(key) < 6:
-            less_than_six += subs[key]
+            r[int(key)-1] = subs[key]
         else:
-            more_than_or_six += subs[key]
+            r[5] += subs[key]
+
+    if v: print(r)
+    return r
+
+def get_chi2(r):
+    #χ2 = 1/n * ΣΣ aij (ri - n*bi) (rj - n*bj)
+    chi2 = 0
+    for i in range(6):
+        for j in range(6):
+            chi2 += a[i][j] * (r[i] - (n*b[i])) * (r[j] - (n*b[j]))
+    chi2 *= 1/n
+    return chi2
+
+subs = get_subs(data)
+r = get_r(subs)
+chi2 = get_chi2(r)
+print("Chi2 = " + str(chi2))
