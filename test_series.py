@@ -2,7 +2,7 @@ from random import randint
 
 #PARAMETROS A CAMBIAR
 k = 10
-n = 1000
+n = 100
 
 #Generamos nros al azar con randint, esto se puede reemplazar por el generador a probar
 data = [[randint(0,1000)/1000 for i in range(2)] for i in range(n)]
@@ -27,4 +27,4 @@ for i in range(1,k+1):
 
 chi2 = ((k**2)/n) * sum([sum((i-(n/(k**2)))**2 for i in row) for row in freqs])
 
-print("χ2 = " + str(chi2))
+print("chi2 = " + str(chi2))

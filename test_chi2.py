@@ -1,8 +1,8 @@
-from random import randint
+﻿from random import randint
 
 #PARAMETROS A CAMBIAR
 k = 20
-n = 200
+n = 10000
 
 #Generamos nros al azar con randint, esto se puede reemplazar por el generador a probar
 data = [randint(0,1000)/1000 for i in range(n)]
@@ -26,4 +26,4 @@ def gen_chi2(data_arr):
     return chi2
 
 chi2 = gen_chi2(data)
-print("χ2 = " + str(chi2))
+print("chi2 = " + str(chi2))

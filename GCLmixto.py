@@ -1,7 +1,7 @@
 from random import randint
 
 #PARAMETROS A CAMBIAR
-n = 20
+n = 10000
 z_inicial = 7
 a = 5
 c = 3

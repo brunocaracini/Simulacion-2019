@@ -1,4 +1,4 @@
-from random import randint
+﻿from random import randint
 
 #PARAMETROS A CAMBIAR
 n = 10000
@@ -79,4 +79,8 @@ def get_chi2(r):
 subs = get_subs(data)
 r = get_r(subs)
 chi2 = get_chi2(r)
+<<<<<<< HEAD
+print("chi2 = " + str(chi2))
+=======
 print("Chi2 = " + str(chi2))
+>>>>>>> 9d22157a654192282dcf5e172b5b9e93270b1a49
