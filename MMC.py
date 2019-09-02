@@ -76,7 +76,7 @@ class Simulacion():
 
         #Creamos la lista de eventos, estableciendo todas las partidas en big_number para evitar partidas de servidores desocupados
         self.lista_eventos = []
-        self.lista_eventos.append(np.random.exponential(1/self.lineas[0].colas_entrada.tma))
+        self.lista_eventos.append(np.random.exponential(self.lineas[0].colas_entrada.tma))
         for _ in self.nombres_eventos[1:]:
             self.lista_eventos.append(big_number)
 
@@ -113,12 +113,12 @@ class Simulacion():
 
                 
         def arribo():
-            self.lista_eventos[nro_evento] = self.reloj + np.random.exponential(1/self.lineas[0].colas_entrada.tma)
+            self.lista_eventos[nro_evento] = self.reloj + np.random.exponential(self.lineas[0].colas_entrada.tma)
             cli = Cliente(self.reloj)
             nro_servidor = self.asignar_servidor()
             if nro_servidor:
                 nro_servidor -= 1
-                self.lista_eventos[nro_servidor+1] = self.reloj + np.random.exponential(1/self.lineas[0].servidores[nro_servidor].tms)
+                self.lista_eventos[nro_servidor+1] = self.reloj + np.random.exponential(self.lineas[0].servidores[nro_servidor].tms)
                 self.lineas[0].servidores[nro_servidor].ingreso_servidor(cli,self.reloj)
             else:
                 self.lineas[0].colas_entrada.ingreso_cola(cli)
@@ -126,7 +126,7 @@ class Simulacion():
         def partidas(s):
             #obtenemos el nro de linea y de servidor del nombre del evento
             n_linea, n_servidor = int(s[-2])-1 ,int(s[-1])-1
-            self.lista_eventos[nro_evento] = self.reloj + np.random.exponential(1/self.lineas[n_linea].servidores[n_servidor].tms)
+            self.lista_eventos[nro_evento] = self.reloj + np.random.exponential(self.lineas[n_linea].servidores[n_servidor].tms)
             #partida de primera linea:
             if n_linea == 0:
                 srv = self.lineas[0].servidores[n_servidor]
@@ -136,7 +136,7 @@ class Simulacion():
                         #Ingresa a la cola
                         self.lineas[1].colas_entrada[n_servidor].ingreso_cola(cli)
                     else:
-                        self.lista_eventos[n_servidor+4] = self.reloj + np.random.exponential(1/self.lineas[n_linea].servidores[n_servidor].tms)
+                        self.lista_eventos[n_servidor+4] = self.reloj + np.random.exponential(self.lineas[n_linea].servidores[n_servidor].tms)
                         self.lineas[1].servidores[n_servidor].ingreso_servidor(cli,self.reloj)
                 else:
                     pass
