@@ -5,9 +5,9 @@ infinito = 99999999999
 tma = 0.8
 
 class Cliente():
-    def __init__(self):
-        self.tiempo_entrada = 0
-        self.tiempo_salida = 0
+    def __init__(self, tiempo_entrada, tiempo_salida):
+        self.tiempo_entrada = tiempo_entrada
+        self.tiempo_salida = tiempo_salida
 
 class Cola():
     def __init__(self):
@@ -54,89 +54,140 @@ class Simulacion():
         self.clientes_completaron_demora = 0 
 
     def inicializacion(self):
-        self.clock = 0  #Inicializamos el reloj en 0.
-        tiempo = self.clock + np.random.exponential(1/tma)  #Calculamos el tiempo del primer arribo para inicializar la lista de eventos.
-        prox_evento = Evento('arribo', tiempo) #Creamos un objeto del tipo evento, que recibe como parametro el tiempo calculado y el tipo de evento.
-        self.l_evento.append(prox_evento)  #Asignamos el evento arribo que creamos en la posición 0 de la lista de eventos.
-        for i in range(1,7): #Llenamos las posiciones restantes de la lista de eventos con partidas.
-            tiempo = infinito #Ponemos el tiempo en infinito para estas partidas.
-            prox_evento = Evento('partida', tiempo) #Creamos un objeto del tipo evento, que recibe como parametro el tiempo calculado y el tipo de evento.
-            self.l_evento.append(prox_evento) # Asignamos el evento arribo que creamos en la posición i de la lista de eventos.
+        self.clock = 0  
+        #Inicializamos el reloj en 0.
+        tiempo = self.clock + np.random.exponential(tma)  
+        #Calculamos el tiempo del primer arribo para inicializar la lista de eventos.
+        prox_evento = Evento('arribo', tiempo) 
+        #Creamos un objeto del tipo evento, que recibe como parametro el tiempo calculado y el tipo de evento.
+        self.l_evento.append(prox_evento)  
+        #Asignamos el evento arribo que creamos en la posición 0 de la lista de eventos.
+        for i in range(1,7): 
+        #Llenamos las posiciones restantes de la lista de eventos con partidas.
+            tiempo = infinito 
+            #Ponemos el tiempo en infinito para estas partidas.
+            prox_evento = Evento('partida', tiempo) 
+            #Creamos un objeto del tipo evento, que recibe como parametro el tiempo calculado y el tipo de evento.
+            self.l_evento.append(prox_evento) 
+            # Asignamos el evento arribo que creamos en la posición i de la lista de eventos.
 
 
     def tiempos(self):
-        i = 0
         self.l_tiempo = []
-        for evento in self.l_evento: #En este for se obtiene el tiempo de todos los eventos de la lista de eventos, y lo guardamos en una lista de tiempos.
-            i +=1
+        for evento in self.l_evento: 
+        #En este for se obtiene el tiempo de todos los eventos de la lista de eventos, y lo guardamos en una lista de tiempos.
             self.l_tiempo.append(evento.tiempo)
-        tiempo_prox_evento = min(self.l_tiempo) #Elegimos el mas chico de esa lista de tiempos.
+        tiempo_prox_evento = min(self.l_tiempo) 
+        #Elegimos el mas chico de esa lista de tiempos.
         index_prox_evento = self.l_tiempo.index(tiempo_prox_evento) 
-        evento = self.l_evento[index_prox_evento] #Buscamos el evento que corresponde a ese tiempo en la lista de eventos
-        self.clock = evento.tiempo #Actualizamos el reloj a ese tiempo
-        return [evento.tipo, index_prox_evento] #Devolvemos el tipo de evento.
+        evento = self.l_evento[index_prox_evento] 
+        #Buscamos el evento que corresponde a ese tiempo en la lista de eventos
+        self.clock = evento.tiempo 
+        #Actualizamos el reloj a ese tiempo
+        return [evento.tipo, index_prox_evento] 
+        #Devolvemos el tipo de evento y su índice para identificar a que servidor corresponde.
         
 
     def eventos(self, evento_tipo, index_prox_evento):
         def arribo():
-            tiempo = self.clock + np.random.exponential(1/tma) #Calcula el nuevo tiempo de arribo.
-            prox_evento = Evento('arribo', tiempo) #Creamos un objeto del tipo Evento, que recibe como parametro el tiempo calculado y el tipo de evento.
-            self.l_evento[0] = prox_evento #Asignamos el evento arribo que creamos en la posición 0 de la lista de eventos.
-            cliente = Cliente() #Creamos un objeto del tipo Cliente.
-            servidores_disponibles = [] #Creamos un arreglo vacío de servidores disponibles.
-            for servidor in self.linea1: #Por cada uno de los servidores, se chequea si está ocupado o no y se añade a la lista de servidores disponibes.
+            tiempo = self.clock + np.random.exponential(1/tma) 
+            #Calcula el nuevo tiempo de arribo.
+            prox_evento = Evento('arribo', tiempo) 
+            #Creamos un objeto del tipo Evento, que recibe como parametro el tiempo calculado y el tipo de evento.
+            self.l_evento[0] = prox_evento 
+            #Asignamos el evento arribo que creamos en la posición 0 de la lista de eventos.
+            cliente = Cliente(self.clock, 0) 
+            #Creamos un objeto del tipo Cliente.
+            servidores_disponibles = [] 
+            #Creamos un arreglo vacío de servidores disponibles.
+            for servidor in self.linea1: 
+            #Por cada uno de los servidores, se chequea si está ocupado o no y se añade a la lista de servidores disponibes.
                 if servidor.ocupado == False:
                     servidores_disponibles.append(servidor)
-            if len(servidores_disponibles) == 0: #Si no hubo ninguno disponible, se añade el cliente a a la cola.
+            if len(servidores_disponibles) == 0: 
                 self.colas[0].clientes.append(cliente)
+            #Si no hubo ninguno disponible, se añade el cliente a a la cola.
+
             else: 
-                servidor = random.choice(servidores_disponibles) #Elegimos un servidor al azar de la lista de servidores disponibles.
-                servidor.cliente = cliente  #Registramos que el elciente se encuentra en ese servidor
-                servidor.ocupado = True #Actualizamos el estado de ocupación del servidor.
+            #Si hubo servidores disponibles, entonces:
+                servidor = random.choice(servidores_disponibles) 
+                #Elegimos un servidor al azar de la lista de servidores disponibles.
+                servidor.cliente = cliente  
+                #Registramos que el elciente se encuentra en ese servidor
+                servidor.ocupado = True 
+                #Actualizamos el estado de ocupación del servidor.
                 index_serv = self.linea1.index(servidor)    
-                self.linea1[index_serv] = servidor #Actualizamos los datos del servidor igualandolo a la copia.
+                self.linea1[index_serv] = servidor 
+                #Actualizamos los datos del servidor igualandolo a la copia.
                 tiempo = self.clock + np.random.exponential(1/servidor.tms)
                 prox_partida = Evento('partida', tiempo)
                 self.l_evento[servidor.numero] = prox_partida
+                #Calculamos el tiempo de partida para el arribo creado.
                  
         def partida(index_prox_evento):
             if index_prox_evento in [1,2,3]:
-
+            #corroboramos que la partida corresponda a un servidor de la primera linea
                 cliente = self.linea1[index_prox_evento - 1].cliente
+                #tomamos el cliente que está en ese servidor y lo guardamos en una variable.
                 if self.linea2[index_prox_evento - 1].ocupado == True:
                     self.colas[index_prox_evento].clientes.append(cliente)
+                #Chequeamos si el servidor que está en línea recta está ocupado, y si lo está asignamos el cliente a la cola.
                 else:
                     self.linea2[index_prox_evento - 1].cliente = cliente
+                    #En caso de que esté vacío, asignamos al cliente a ese servidor.
                     tiempo = self.clock + np.random.exponential(self.linea1[index_prox_evento - 1].tms)
                     prox_partida = Evento('partida', tiempo)
-                    self.l_evento[index_prox_evento] = prox_partida
-                    
+                    self.l_evento[index_prox_evento + 3] = prox_partida
+                    #Calculamos un evento partida para ese cliente en el nuevo servidor.
+                    self.linea2[index_prox_evento - 1].ocupado = True
+                    #Ponemos el servidor al que paso el cliente como ocupado.
+
                 self.linea1[index_prox_evento - 1].cliente = False   
                 self.linea1[index_prox_evento - 1].ocupado == False
+                #Cambiamos el estado del servidor y borramos el cliente que ha partido.
 
                 if len(self.colas[0].clientes) == 0:
                     prox_partida = Evento('partida', infinito)
                     self.l_evento[index_prox_evento] = prox_partida
+                # Chequeamos si la longitud de la cola que alimenta la primera linea es 0, si es así, 
+                # ponemos la partida de ese srvidor en infinito
                 else:
+                #Si la cola no está vacia, entonces:
                     cliente = self.colas[0].clientes.pop()
+                    #agarramos el primer cliente de la cola y lo guardamos en una variable, moviendo
+                    #los demás clientes una posición hacia adelante.
                     self.linea1[index_prox_evento - 1].cliente = cliente
+                    #asignamos el cliente al servidor que quedó vacío en la partida.
                     tiempo = self.clock + np.random.exponential(self.linea1[index_prox_evento - 1].tms)
                     prox_partida = Evento('partida', tiempo)
                     self.l_evento[index_prox_evento] = prox_partida
-
+                    #Calculamos un evento partida para ese cliente, y lo guardamos en la lista de eventos.
+                    self.linea1[index_prox_evento -1].ocupado = True
+                    #Cambiamos el estado del servidor a ocupado.
+            
             else:
+            #Si la partida no fue de la primera línea, entonces:
+                
                 if len(self.colas[index_prox_evento - 3]) == 0:
+                #Chequeamos si la cola que alimenta el servidor está vacía.    
                     prox_partida = Evento('partida', infinito)
                     self.l_evento[index_prox_evento] = prox_partida
+                    #Si lo está, ponemos la partida de ese servidor en infinito, y actualizamos la lista de eventos.
+                    self.linea2[index_prox_evento - 4].ocupado = False
+                    self.linea2[index_prox_evento - 4].cliente = False
+                    #Cambiamos el estado del servidor a disponible
+                
                 else:
+                #Si la cola no estaba vacía, entonces:
                     cliente = self.colas[index_prox_evento - 3].pop()
+                    #agarramos el primer cliente de la cola y lo guardamos en una variable, moviendo
+                    #los demás clientes una posición hacia adelante.                    
                     self.linea2[index_prox_evento - 4].cliente = cliente
+                    #asignamos el cliente al servidor que quedó vacío en la partida.
                     tiempo = self.clock + np.random.exponential(self.linea2[index_prox_evento - 3].tms)
                     prox_partida = Evento('partida', tiempo)
                     self.l_evento[index_prox_evento] = prox_partida
-
-                self.linea2[index_prox_evento - 4].cliente = False
-                self.linea2[index_prox_evento - 4].ocupado = False
+                    #Calculamos un evento partida para el cliente que se asigna al servidor.
 
 
         if evento_tipo == 'arribo':
