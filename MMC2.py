@@ -4,20 +4,25 @@ import random
 infinito = 99999999999
 tma = 0.8
 
+
 class Cliente():
     def __init__(self):
         self.tiempo_entrada = 0
         self.tiempo_salida = 0
+        self.demora_cli = 0
     
     def entrada(self, tiempo):
         self.tiempo_entrada = tiempo
 
     def salida(self, tiempo):
         self.tiempo_salida = tiempo
+        self.demora_cli = self.tiempo_salida - self.tiempo_entrada
 
 class Cola():
-    def __init__(self):
+    def __init__(self, numero):
         self.clientes = []
+        self.cant_cli_acum = 0
+        self.numero_cola = numero
 
 class Servidor():
     def __init__(self, estado, numero, tiempo_m_servicio):
@@ -56,7 +61,7 @@ class Evento():
         self.tiempo = tiempo
 
 class Simulacion():
-    def __init__(self):
+    def __init__(self, muestra_diagnostico):
         self.clock = 0
         self.l_evento = [] 
         self.l_tiempo = []
@@ -66,15 +71,17 @@ class Simulacion():
         self.serv4 = Servidor(False, 4, 0.2)
         self.serv5 = Servidor(False, 5, 0.4)
         self.serv6 = Servidor(False, 6, 0.6)
-        self.cola0 = Cola()
-        self.cola1 = Cola()
-        self.cola2 = Cola()
-        self.cola3 = Cola()
+        self.cola0 = Cola(0)
+        self.cola1 = Cola(1)
+        self.cola2 = Cola(2)
+        self.cola3 = Cola(3)
         self.colas = [self.cola0,self.cola1,self.cola2,self.cola3]
         self.linea1 = [self.serv1, self.serv2, self.serv3]
         self.linea2 = [self.serv4, self.serv5, self.serv6]
         self.demora_acumulada = 0
         self.clientes_completaron_demora = 0 
+        self.tiempo_ult_evento = 0
+        self.muestra_diagnostico = muestra_diagnostico
 
     def inicializacion(self):
         self.clock = 0  
@@ -105,6 +112,8 @@ class Simulacion():
         index_prox_evento = self.l_tiempo.index(tiempo_prox_evento) 
         evento = self.l_evento[index_prox_evento] 
         #Buscamos el evento que corresponde a ese tiempo en la lista de eventos
+        self.tiempo_ult_evento = self.clock
+        #Guardamos el tiempo del ultimo evento
         self.clock = evento.tiempo 
         #Actualizamos el reloj a ese tiempo
         return [evento.tipo, index_prox_evento] 
@@ -113,7 +122,7 @@ class Simulacion():
 
     def eventos(self, evento_tipo, index_prox_evento):
         def arribo():
-            tiempo = self.clock + np.random.exponential(1/tma) 
+            tiempo = self.clock + np.random.exponential(tma) 
             #Calcula el nuevo tiempo de arribo.
             prox_evento = Evento('arribo', tiempo) 
             #Creamos un objeto del tipo Evento, que recibe como parametro el tiempo calculado y el tipo de evento.
@@ -142,7 +151,7 @@ class Simulacion():
                 index_serv = self.linea1.index(servidor)    
                 self.linea1[index_serv] = servidor 
                 #Actualizamos los datos del servidor igualandolo a la copia.
-                tiempo = self.clock + np.random.exponential(1/servidor.tms)
+                tiempo = self.clock + np.random.exponential(servidor.tms)
                 prox_partida = Evento('partida', tiempo)
                 self.l_evento[servidor.numero] = prox_partida
                 #Calculamos el tiempo de partida para el arribo creado.
@@ -191,6 +200,12 @@ class Simulacion():
                 
                 self.linea2[index_prox_evento - 4].cliente.salida(self.clock)
                 #Registramos el tiempo en el que el cliente sale del sistema
+                
+                self.clientes_completaron_demora += 1
+                #Sumamos uno al numero de clientes que completaron la demora
+
+                self.demora_acumulada +=  self.linea2[index_prox_evento - 4].cliente.demora_cli
+                #Sumamos la demora del cliente a la demora acumulada
 
                 self.linea2[index_prox_evento - 4].asigna_cliente(False, self.clock)
                 #Cambiamos el estado del servidor a disponible
@@ -218,42 +233,86 @@ class Simulacion():
             arribo()
         if evento_tipo == 'partida':
             partida(index_prox_evento)
-
+        
+        for cola in self.colas:
+            cola.cant_cli_acum += len(cola.clientes) * (self.clock - self.tiempo_ult_evento)
+        #Se suman en cada iteración y en cada cola la cantidad de clientes acumulados aplicando la formula.
     
     def reportes(self):
-        #Utilizacion de servidores u(t)
-        u_t = []
-        for servidor in (self.linea1+self.linea2):
-            u_t.append(servidor.tiempo_acumulado_servicio/self.clock)
-        '''
-        #Demora promedio del cliente
-        d_t_promedio =  self.demora_acumulada/self.clientes_completaron_demora
+        print('')
+        print('--------'*15)
+        print('REPORTES:')
+        print('--------'*15)
 
-        #Cantidad promedio de clientes en cola q_t
-        q_t = []
+        #Utilizacion de servidores u(t)
+        print('Utilizacion de servidores u(t):')
+        print('')
+        for servidor in (self.linea1+self.linea2):
+            print('Utilizacion promedio del servidor', servidor.numero, ':', servidor.tiempo_acumulado_servicio/self.clock)
+        print('--------'*15)
+
+        #Demora promedio del cliente d(t)
+        d_t_promedio =  self.demora_acumulada/self.clientes_completaron_demora
+        print("Demora promedio de clientes d(t): ",d_t_promedio)
+        print('--------'*15)
+
+        #Cantidad promedio de clientes en cola q(t)
+        print('Cantidad promedio de clientes en cola q(t):')
+        print('')
         for cola in self.colas:
-            q_t.append(cola.q_t / self.clock)
-        ''' 
-        print("Utilizaciones de servidores: ",u_t)
-        #print("Demora promedio de clientes: ",d_t_promedio)
-        #print("Cantidad promedio de clientes en cola: ",q_t)
-        
+            print('Cantidad promedio de clientes en la cola', cola.numero_cola,':', cola.cant_cli_acum/self.clock)
+        print('--------'*15)
+
+
+    def diagnostico(self, tipo_prox_evento, index_prox_evento):
+        print('----*'*15)
+        print('')
+        print('reloj: ', self.clock)
+        print('Lista de tiempos:', self.l_tiempo)
+        print('')
+        print('proximo evento:', tipo_prox_evento,' ' , index_prox_evento)
+        i = 0
+        print('')
+        for cola in self.colas:
+            cant_cli = len(cola.clientes)
+            print('Cantidad de clientes en la cola ', i, ': ', cant_cli)
+            i +=1
+        print('')
+        for servidor in (self.linea1 + self.linea2):
+            if servidor.ocupado == True:
+                print('Servidor ', servidor.numero, ': ocupado')
+            else:
+                 print('Servidor ', servidor.numero, ': disponible')
+        print('')
+            
+
 
     def programa_principal(self):
         #LLamamos a la rutina de inicialización.
         self.inicializacion()
 
-        while(self.clock < 5000):
+        while(self.clock < tiempo_terminacion):
             #Llamamos a la rutina de tiempos, que devuelve el proximo evento, y lo guardamos en una variable.
-            print(self.clock)
             array = self.tiempos()
             tipo_prox_evento = array[0]
             index_prox_evento = array[1]
             
             #LLamamos a la rutina de eventos, y le mandamos como parámetro el tipo de evento del proximo evento.
             self.eventos(tipo_prox_evento, index_prox_evento)
-
+            if self.muestra_diagnostico == True:
+                self.diagnostico(tipo_prox_evento, index_prox_evento)
+        
         self.reportes()
 
-sim = Simulacion()
-sim.programa_principal()
+#Main:
+tiempo_terminacion = eval(input('Ingrese tiempo de fin de la simulacion: '))
+ans = input('¿Desea ver un detalle de la simulacion paso a paso? (S/N) \n')
+
+if ans == 'S' or ans == 's':
+    sim = Simulacion(True)
+    sim.programa_principal()
+
+else:
+    sim = Simulacion(False)
+    sim.programa_principal()
+
