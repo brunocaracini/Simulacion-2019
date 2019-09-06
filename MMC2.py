@@ -4,13 +4,13 @@ import random
 infinito = 99999999999
 tma = 0.8
 
-
 class Cliente():
     def __init__(self):
         self.tiempo_entrada = 0
         self.tiempo_salida = 0
         self.demora_cli = 0
-    
+        self.prioridad = np.random.random() < 0.1
+
     def entrada(self, tiempo):
         self.tiempo_entrada = tiempo
 
@@ -18,11 +18,50 @@ class Cliente():
         self.tiempo_salida = tiempo
         self.demora_cli = self.tiempo_salida - self.tiempo_entrada
 
+
 class Cola():
     def __init__(self, numero):
         self.clientes = []
         self.cant_cli_acum = 0
         self.numero_cola = numero
+
+
+    def disciplina_cola(self, algoritmo):
+        #FIFO
+        if algoritmo == '1':
+            cliente = self.clientes.pop(0)
+            return cliente
+
+        #LIFO
+        elif algoritmo == '2':
+            cliente = self.clientes.pop()
+            return cliente
+        
+        #PRIORIDADES
+        if algoritmo == '31':
+            cliente = False
+            i = 0
+            while cliente == False and i < len(self.clientes):
+                if self.clientes[i].prioridad == True:
+                    cliente = self.clientes.pop(i)
+                else:
+                    i += 1
+            if cliente == False:
+                cliente = self.clientes.pop(0)
+                
+        elif algoritmo =='32':
+            cliente = False
+            i = len(self.clientes) - 1
+            while cliente == False and i >= 0:
+                if self.clientes[i].prioridad == True:
+                    cliente = self.clientes.pop(i)
+                else:
+                    i -= 1
+            if cliente == False:
+                cliente = self.clientes.pop()
+
+        return cliente
+
 
 class Servidor():
     def __init__(self, estado, numero, tiempo_m_servicio):
@@ -61,7 +100,7 @@ class Evento():
         self.tiempo = tiempo
 
 class Simulacion():
-    def __init__(self, muestra_diagnostico):
+    def __init__(self, muestra_diagnostico, algoritmo):
         self.clock = 0
         self.l_evento = [] 
         self.l_tiempo = []
@@ -82,6 +121,9 @@ class Simulacion():
         self.clientes_completaron_demora = 0 
         self.tiempo_ult_evento = 0
         self.muestra_diagnostico = muestra_diagnostico
+        self.algoritmo = algoritmo
+        self.cant_cli_prioridad = 0
+
 
     def inicializacion(self):
         self.clock = 0  
@@ -131,6 +173,9 @@ class Simulacion():
             cliente = Cliente()
             cliente.entrada(self.clock)
             #Creamos un objeto del tipo Cliente.
+            if (cliente.prioridad == True) and (self.algoritmo == '31' or self.algoritmo == '32'):
+                self.cant_cli_prioridad += 1
+            #Si el cliente es prioritario, sumamos uno al estadistico de clientes prioritarios
             servidores_disponibles = [] 
             #Creamos un arreglo vacío de servidores disponibles.
             for servidor in self.linea1: 
@@ -161,7 +206,7 @@ class Simulacion():
             #corroboramos que la partida corresponda a un servidor de la primera linea
                 cliente = self.linea1[index_prox_evento - 1].cliente
                 #tomamos el cliente que está en ese servidor y lo guardamos en una variable.
-                if self.linea2[index_prox_evento - 1].ocupado == True:
+                if self.linea2[index_prox_evento - 1].ocupado == True:   
                     self.colas[index_prox_evento].clientes.append(cliente)
                 #Chequeamos si el servidor que está en línea recta está ocupado, y si lo está asignamos el cliente a la cola.
                 else:
@@ -184,7 +229,7 @@ class Simulacion():
                 # ponemos la partida de ese servidor en infinito
                 else:
                 #Si la cola no está vacia, entonces:
-                    cliente = self.colas[0].clientes.pop()
+                    cliente = self.colas[0].disciplina_cola(self.algoritmo)
                     #agarramos el primer cliente de la cola y lo guardamos en una variable, moviendo
                     #los demás clientes una posición hacia adelante.
                     self.linea1[index_prox_evento - 1].asigna_cliente(cliente, self.clock)
@@ -218,7 +263,7 @@ class Simulacion():
                     
                 else:
                 #Si la cola no estaba vacía, entonces:
-                    cliente = self.colas[index_prox_evento - 3].clientes.pop()
+                    cliente = self.colas[index_prox_evento - 3].disciplina_cola(self.algoritmo)
                     #agarramos el primer cliente de la cola y lo guardamos en una variable, moviendo
                     #los demás clientes una posición hacia adelante.                
                     self.linea2[index_prox_evento - 4].asigna_cliente(cliente, self.clock)
@@ -241,16 +286,30 @@ class Simulacion():
     def reportes(self):
         print('')
         print('--------'*15)
-        print('REPORTES:')
+        print(" "*50, 'REPORTES: ')
         print('--------'*15)
-
+        if self.algoritmo == '1':
+            print('Algoritmo de colas utilizado: FIFO')
+        elif self.algoritmo == '2':
+            print('Algoritmo de colas utilizado: LIFO')
+        elif self.algoritmo == '31':
+            print('Algoritmo de colas utilizado: PRIORIDADES - FIFO')
+            print('--------'*15)
+            print('Cantidad total de clientes prioritarios:', self.cant_cli_prioridad)
+        elif self.algoritmo == '32':
+            print('Algoritmo de colas utilizado: PRIORIDADES - LIFO')
+            print('--------'*15)
+            print('Cantidad total de clientes prioritarios:', self.cant_cli_prioridad)
+        print('--------'*15)
+        print('Reloj detenido en:', self.clock)
+        print('--------'*15)
         #Utilizacion de servidores u(t)
         print('Utilizacion de servidores u(t):')
         print('')
         for servidor in (self.linea1+self.linea2):
             print('Utilizacion promedio del servidor', servidor.numero, ':', servidor.tiempo_acumulado_servicio/self.clock)
         print('--------'*15)
-
+        
         #Demora promedio del cliente d(t)
         d_t_promedio =  self.demora_acumulada/self.clientes_completaron_demora
         print("Demora promedio de clientes d(t): ",d_t_promedio)
@@ -284,8 +343,6 @@ class Simulacion():
             else:
                  print('Servidor ', servidor.numero, ': disponible')
         print('')
-            
-
 
     def programa_principal(self):
         #LLamamos a la rutina de inicialización.
@@ -306,13 +363,21 @@ class Simulacion():
 
 #Main:
 tiempo_terminacion = eval(input('Ingrese tiempo de fin de la simulacion: '))
+algoritmo = input('Seleccione algoritmo de colas a utilizar: \n 1)FIFO \n 2)LIFO \n 3)PRIORIDADES\n')
+if algoritmo == '3':
+    ans = input('Seleccione algoritmo suplementario a utilizar: \n 1)FIFO \n 2)LIFO')
+    if ans == '1':
+        algoritmo = '31'
+    else:
+        algoritmo = '32'
 ans = input('¿Desea ver un detalle de la simulacion paso a paso? (S/N) \n')
 
+
 if ans == 'S' or ans == 's':
-    sim = Simulacion(True)
+    sim = Simulacion(True, algoritmo)
     sim.programa_principal()
 
 else:
-    sim = Simulacion(False)
+    sim = Simulacion(False, algoritmo)
     sim.programa_principal()
 
