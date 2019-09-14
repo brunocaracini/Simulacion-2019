@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from matplotlib import pyplot
 
 infinito = 99999999999
 tma = 0.8
@@ -322,6 +323,9 @@ class Simulacion():
             print('Cantidad promedio de clientes en la cola', cola.numero_cola,':', cola.cant_cli_acum/self.clock)
         print('--------'*15)
 
+    def plots(self):
+        pass
+            
 
     def diagnostico(self, tipo_prox_evento, index_prox_evento):
         print('----*'*15)
@@ -365,7 +369,7 @@ class Simulacion():
 tiempo_terminacion = eval(input('Ingrese tiempo de fin de la simulacion: '))
 algoritmo = input('Seleccione algoritmo de colas a utilizar: \n 1)FIFO \n 2)LIFO \n 3)PRIORIDADES\n')
 if algoritmo == '3':
-    ans = input('Seleccione algoritmo suplementario a utilizar: \n 1)FIFO \n 2)LIFO')
+    ans = input('Seleccione algoritmo suplementario a utilizar: \n 1)FIFO \n 2)LIFO\n')
     if ans == '1':
         algoritmo = '31'
     else:
