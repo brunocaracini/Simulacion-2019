@@ -1,16 +1,28 @@
 import numpy as np
 import random
 from matplotlib import pyplot as plt
+from matplotlib.patches import Patch
 
 infinito = 99999999999
 tma = 0.8
+
+class Resultado():
+    def __init__(self, clocks, demora_acumulada_array, demora_acumulada_prioridad_array, colas, lineas, clock, algoritmo):
+        self.clocks = clocks
+        self.demora_acumulada_array = demora_acumulada_array
+        self.demora_acumulada_prioridad_array = demora_acumulada_prioridad_array
+        self.colas = colas
+        self.lineas = lineas
+        self.clock = clock
+        self.algoritmo = algoritmo
+
 
 class Cliente():
     def __init__(self):
         self.tiempo_entrada = 0
         self.tiempo_salida = 0
         self.demora_cli = 0
-        self.prioridad = np.random.random() < 0.1
+        self.prioridad = np.random.random() < 0.03
 
     def entrada(self, tiempo):
         self.tiempo_entrada = tiempo
@@ -26,6 +38,9 @@ class Cola():
         self.cant_cli_acum = 0
         self.numero_cola = numero
         self.cant_cli_acum_array = []
+        self.cant_cli_acum_prioridad = 0
+        self.cant_cli_acum_prioridad_array = []
+        self.clientes_prioritarios = []
 
 
     def disciplina_cola(self, algoritmo):
@@ -123,8 +138,13 @@ class Simulacion():
         self.cant_cli_prioridad = 0
         self.clocks = []
         self.demora_acumulada_array=[]
-
-
+        self.demora_acumulada_prioridad = 0
+        self.clientes_completaron_demora_prioridad = 0
+        self.demora_acumulada_prioridad_array = []
+        self.clientes_completaron_demora_array = []
+        self.clientes_completaron_demora_prioridad_array = []
+    
+    
     def inicializacion(self):
         self.clock = 0  
         #Inicializamos el reloj en 0.
@@ -254,6 +274,13 @@ class Simulacion():
                 self.demora_acumulada +=  self.linea2[index_prox_evento - 4].cliente.demora_cli
                 #Sumamos la demora del cliente a la demora acumulada
 
+                if self.algoritmo == '31' or '32':
+                    if self.linea2[index_prox_evento - 4].cliente.prioridad:
+                        self.clientes_completaron_demora_prioridad += 1
+                        self.demora_acumulada_prioridad += self.linea2[index_prox_evento - 4].cliente.demora_cli
+                #Sumamos uno al numero de clientes prioritarios que completaron la demora, y sumamos la demora del cliente prioritario a la 
+                #demora acumulada de clientes prioritarios.
+
                 self.linea2[index_prox_evento - 4].asigna_cliente(False, self.clock)
                 #Cambiamos el estado del servidor a disponible
 
@@ -287,7 +314,7 @@ class Simulacion():
             cola.cant_cli_acum += len(cola.clientes) * (self.clock - self.tiempo_ult_evento)
             cola.cant_cli_acum_array.append(cola.cant_cli_acum/self.clock)
         #Se suman en cada iteración y en cada cola la cantidad de clientes acumulados aplicando la formula.
-        
+
         for servidor in (self.linea1 + self.linea2):
             servidor.tiempo_acumlado(self.clock)
         #Se actualiza en cada iteracion la utilizacion de cada servidor para el tiempo de reloj actual.
@@ -298,7 +325,13 @@ class Simulacion():
             self.demora_acumulada_array.append(self.demora_acumulada/self.clientes_completaron_demora)
         #Se actualiza en cada iteracion la demora promedio de los clientes para el tiempo de reloj actual.
 
-        
+        if algoritmo == '32' or '31':
+            if self.clientes_completaron_demora_prioridad == 0:
+                self.demora_acumulada_prioridad_array.append(0)
+            else:
+                self.demora_acumulada_prioridad_array.append(self.demora_acumulada_prioridad/self.clientes_completaron_demora_prioridad)
+        ##Se actualiza en cada iteracion la demora promedio de los clientes para el tiempo de reloj actual para los clientes prioritarios.
+
     
     def reportes(self):
 
@@ -341,136 +374,6 @@ class Simulacion():
             print('Cantidad promedio de clientes en la cola', cola.numero_cola,':', cola.cant_cli_acum/self.clock)
         print('--------'*15)
 
-    def plots(self):
-
-        #Tiempo acumulado de servicio
-        lineas = self.linea1+self.linea2
-        fig, axs = plt.subplots(3, 2)
-        
-        fig.suptitle('Tiempo acumulado de servicio')
-
-        axs[0, 0].plot(self.clocks, lineas[0].tiempo_acumulado_servicio_array, color = 'cyan')
-        axs[0, 0].set_title('Servidor 1')
-        axs[0, 0].set_ylabel('Tiempo acumulado de servicio')
-
-        axs[0, 1].plot(self.clocks, lineas[1].tiempo_acumulado_servicio_array, color = 'orange')
-        axs[0, 1].set_title('Servidor 2')
-        
-        axs[1, 0].plot(self.clocks, lineas[2].tiempo_acumulado_servicio_array, color = 'green')
-        axs[1, 0].set_title('Servidor 3')
-        axs[1, 0].set_ylabel('Tiempo acumulado de servicio')
-        
-        axs[1, 1].plot(self.clocks, lineas[3].tiempo_acumulado_servicio_array, color = 'red')
-        axs[1, 1].set_title('Servidor 4')
-        
-        axs[2, 0].plot(self.clocks, lineas[4].tiempo_acumulado_servicio_array, color = 'gold')
-        axs[2, 0].set_title('Servidor 5')
-        axs[2, 0].set_xlabel('Reloj de la simulación')
-        axs[2, 0].set_ylabel('Tiempo acumulado de servicio')
-        
-        axs[2, 1].plot(self.clocks, lineas[5].tiempo_acumulado_servicio_array, color = 'hotpink')
-        axs[2, 1].set_title('Servidor 6')
-        axs[2, 1].set_xlabel('Reloj de la simulación')
-
-        plt.show()
-
-        #Utilizacion promedio de servidores u(t)
-        lineas = self.linea1+self.linea2
-        fig, axs = plt.subplots(3, 2)
-        
-        fig.suptitle('Utilización promedio de los servidores U(t)')
-
-        axs[0, 0].plot(self.clocks, lineas[0].tiempo_acumlado_servicio_promedio_array, color = 'cyan')
-        axs[0, 0].set_title('Servidor 1')
-        axs[0, 0].set_ylabel('U(t)')
-
-        axs[0, 1].plot(self.clocks, lineas[1].tiempo_acumlado_servicio_promedio_array, color = 'orange')
-        axs[0, 1].set_title('Servidor 2')
-        
-        axs[1, 0].plot(self.clocks, lineas[2].tiempo_acumlado_servicio_promedio_array, color = 'green')
-        axs[1, 0].set_title('Servidor 3')
-        axs[1, 0].set_ylabel('U(t)')
-        
-        axs[1, 1].plot(self.clocks, lineas[3].tiempo_acumlado_servicio_promedio_array, color = 'red')
-        axs[1, 1].set_title('Servidor 4')
-        
-        axs[2, 0].plot(self.clocks, lineas[4].tiempo_acumlado_servicio_promedio_array, color = 'gold')
-        axs[2, 0].set_title('Servidor 5')
-        axs[2, 0].set_xlabel('Reloj de la simulación')
-        axs[2, 0].set_ylabel('U(t)')
-        
-        axs[2, 1].plot(self.clocks, lineas[5].tiempo_acumlado_servicio_promedio_array, color = 'hotpink')
-        axs[2, 1].set_title('Servidor 6')
-        axs[2, 1].set_xlabel('Reloj de la simulación')
-
-        plt.show()
-
-        #Utilización promedio de servidores u(t) - Grafico de barras:
-        u1 = lineas[0].tiempo_acumulado_servicio/self.clock
-        u2 = lineas[1].tiempo_acumulado_servicio/self.clock
-        u3 = lineas[2].tiempo_acumulado_servicio/self.clock
-        u4 = lineas[3].tiempo_acumulado_servicio/self.clock
-        u5 = lineas[4].tiempo_acumulado_servicio/self.clock
-        u6 = lineas[5].tiempo_acumulado_servicio/self.clock
-        aver = (u1 + u2 + u3+ u4+ u5+ u6)/6
-        plt.bar('Servidor 1', u1, label = '0.5')
-        plt.bar('Servidor 2', u2, label = '0.5')
-        plt.bar('Servidor 3', u3, label = '0.5')
-        plt.bar('Servidor 4', u4, label = '0.2')
-        plt.bar('Servidor 5', u5, label = '0.4')
-        plt.bar('Servidor 6', u6, label = '0.6')
-        plt.ylabel('u(t)')
-        plt.axhline(aver, color  = 'grey')
-        plt.legend(title = 'Tiempos medios de servicio:', loc='upper center', bbox_to_anchor=(0.5, 1.14), ncol=6)
-        plt.title('Utilización promedio de servidores u(t) - Grafico de barras', y= -0.12)
-        plt.show()
-
-        #Demora promedio del cliente d(t)
-        plt.plot(self.clocks, self.demora_acumulada_array, color = 'green')
-        plt.title('Demora promedio del cliente d(t)')
-        plt.xlabel('Reloj de la simulación')
-        plt.ylabel('Demora promedio del cliente d(t)')
-        plt.show()
-
-        #Cantidad promedio de clientes en cola q(t)
-        fig, axs = plt.subplots(2, 2)
-        
-        fig.suptitle('Cantidad promedio de clientes en cola q(t)')
-
-        axs[0, 0].plot(self.clocks, self.colas[0].cant_cli_acum_array, color = 'cyan')
-        axs[0, 0].set_title('Cola 0')
-        axs[0, 0].set_ylabel('q(t)')
-
-        axs[0, 1].plot(self.clocks, self.colas[1].cant_cli_acum_array, color = 'orange')
-        axs[0, 1].set_title('Cola 1')
-        
-        axs[1, 0].plot(self.clocks, self.colas[2].cant_cli_acum_array, color = 'green')
-        axs[1, 0].set_title('Cola 2')
-        axs[1, 0].set_ylabel('q(t)')
-        axs[1, 0].set_xlabel('Reloj de la simulación')
-        
-        axs[1, 1].plot(self.clocks, self.colas[3].cant_cli_acum_array, color = 'red')
-        axs[1, 1].set_title('Cola 3')
-        axs[1, 1].set_xlabel('Reloj de la simulación')
-        
-        plt.show()
-
-        #Cantidad promedio de clientes en cola q(t) - Grafico de barras
-        q0 = self.colas[0].cant_cli_acum/self.clock
-        q1 = self.colas[1].cant_cli_acum/self.clock
-        q2 = self.colas[2].cant_cli_acum/self.clock
-        q3 = self.colas[3].cant_cli_acum/self.clock
-        aver = (q0 + q1 + q2 + q3)/4
-        plt.bar('Cola 0', q0)
-        plt.bar('Cola 1', q1)
-        plt.bar('Cola 2', q2)
-        plt.bar('Cola 3', q3 )
-        plt.ylabel('q(t)')
-        plt.axhline(aver, color  = 'grey')
-        plt.title('Cantidad promedio de clientes en cola q(t) - Grafico de barras')
-        plt.show()
-        
-
     def diagnostico(self, tipo_prox_evento, index_prox_evento):
         print('----*'*15)
         print('')
@@ -501,14 +404,249 @@ class Simulacion():
             array = self.tiempos()
             tipo_prox_evento = array[0]
             index_prox_evento = array[1]
-            
+
             #LLamamos a la rutina de eventos, y le mandamos como parámetro el tipo de evento del proximo evento.
             self.eventos(tipo_prox_evento, index_prox_evento)
             if self.muestra_diagnostico == True:
                 self.diagnostico(tipo_prox_evento, index_prox_evento)
-        
         self.reportes()
-        self.plots()
+        lineas = self.linea1 + self.linea2
+        resultado = Resultado(self.clocks, self.demora_acumulada_array, self.demora_acumulada_prioridad_array, self.colas, lineas , self.clock, self.algoritmo) 
+        return resultado
+
+
+def plots(res1, res2, res3):
+     #Tiempo acumulado de servicio
+        
+        fig, axs = plt.subplots(3, 2)
+
+        axs[0, 0].plot(res1.clocks, res1.lineas[0].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[0, 0].plot(res2.clocks, res2.lineas[0].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[0, 0].plot(res3.clocks, res3.lineas[0].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[0, 0].set_title('Servidor 1')
+        axs[0, 0].set_ylabel('Tas')
+        axs[0, 0].legend(loc = 'best')
+
+        axs[0, 1].plot(res1.clocks, res1.lineas[1].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[0, 1].plot(res2.clocks, res2.lineas[1].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[0, 1].plot(res3.clocks, res3.lineas[1].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[0, 1].set_title('Servidor 2')
+        axs[0, 1].legend(loc = 'best')
+        
+        axs[1, 0].plot(res1.clocks, res1.lineas[2].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[1, 0].plot(res2.clocks, res2.lineas[2].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[1, 0].plot(res3.clocks, res3.lineas[2].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[1, 0].set_title('Servidor 3')
+        axs[1, 0].set_ylabel('Tas')
+        axs[1, 0].legend(loc = 'best')
+        
+        axs[1, 1].plot(res1.clocks, res1.lineas[3].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[1, 1].plot(res2.clocks, res2.lineas[3].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[1, 1].plot(res3.clocks, res3.lineas[3].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[1, 1].set_title('Servidor 4')
+        axs[1, 1].set_title('Servidor 4')
+        axs[1, 1].set_title('Servidor 4')
+        axs[1, 1].legend(loc = 'best')
+        
+        axs[2, 0].plot(res1.clocks, res1.lineas[4].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[2, 0].plot(res2.clocks, res2.lineas[4].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[2, 0].plot(res3.clocks, res3.lineas[4].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[2, 0].set_title('Servidor 5')
+        axs[2, 0].set_xlabel('Reloj de la simulación')
+        axs[2, 0].set_ylabel('Tas')
+        axs[2, 0].legend(loc = 'best')
+        
+        axs[2, 1].plot(res1.clocks, res1.lineas[5].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
+        axs[2, 1].plot(res2.clocks, res2.lineas[5].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs[2, 1].plot(res3.clocks, res3.lineas[5].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs[2, 1].set_title('Servidor 6')
+        axs[2, 1].set_xlabel('Reloj de la simulación')
+        axs[2, 1].legend(loc = 'best')
+        
+        plt.show()
+
+
+        #Utilizacion promedio de servidores u(t)
+        fig2, axs2 = plt.subplots(3, 2)
+        
+        fig.suptitle('Utilización promedio de los servidores U(t)')
+
+        axs2[0, 0].plot(res1.clocks, res1.lineas[0].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 1')
+        axs2[0, 0].plot(res2.clocks, res2.lineas[0].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs2[0, 0].plot(res3.clocks, res3.lineas[0].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs2[0, 0].set_title('Servidor 1')
+        axs2[0, 0].set_ylabel('U(t)')
+
+        axs2[0, 1].plot(res1.clocks, res1.lineas[1].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 1')
+        axs2[0, 1].plot(res2.clocks, res2.lineas[1].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs2[0, 1].plot(res3.clocks, res3.lineas[1].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs2[0, 1].set_title('Servidor 2')
+    
+        axs2[1, 0].plot(res1.clocks, res1.lineas[2].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 1')
+        axs2[1, 0].plot(res2.clocks, res2.lineas[2].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs2[1, 0].plot(res3.clocks, res3.lineas[2].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs2[1, 0].set_title('Servidor 3')
+        axs2[1, 0].set_ylabel('U(t)')
+        
+        axs2[1, 1].plot(res1.clocks, res1.lineas[3].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 1')
+        axs2[1, 1].plot(res2.clocks, res2.lineas[3].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs2[1, 1].plot(res3.clocks, res3.lineas[3].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs2[1, 1].set_title('Servidor 4')
+    
+        axs2[2, 0].plot(res2.clocks, res2.lineas[4].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 1')
+        axs2[2, 0].plot(res3.clocks, res3.lineas[4].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 2')
+        axs2[2, 0].plot(res1.clocks, res1.lineas[4].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 3')
+        axs2[2, 0].set_title('Servidor 5')
+        axs2[2, 0].set_xlabel('Reloj de la simulación')
+        axs2[2, 0].set_ylabel('U(t)')
+        
+        axs2[2, 1].plot(res1.clocks, res1.lineas[5].tiempo_acumlado_servicio_promedio_array, color = '#7C8788', label = 'Corrida 1')
+        axs2[2, 1].plot(res2.clocks, res2.lineas[5].tiempo_acumlado_servicio_promedio_array, color = '#F9CF51', label = 'Corrida 2')
+        axs2[2, 1].plot(res3.clocks, res3.lineas[5].tiempo_acumlado_servicio_promedio_array, color = '#E26D5C', label = 'Corrida 3')
+        axs2[2, 1].set_title('Servidor 6')
+        axs2[2, 1].set_xlabel('Reloj de la simulación')
+
+        axs2[0, 0].legend(loc = 'best')
+        axs2[0, 1].legend(loc = 'best')
+        axs2[1, 0].legend(loc = 'best')
+        axs2[1, 1].legend(loc = 'best')
+        axs2[2, 0].legend(loc = 'best')
+        axs2[2, 1].legend(loc = 'best')
+
+        plt.show()
+        
+        
+        #Utilización promedio de servidores u(t) - Grafico de barras:
+        u1 = res1.lineas[0].tiempo_acumulado_servicio/res1.clock
+        u2 = res1.lineas[1].tiempo_acumulado_servicio/res1.clock
+        u3 = res1.lineas[2].tiempo_acumulado_servicio/res1.clock
+        u4 = res1.lineas[3].tiempo_acumulado_servicio/res1.clock
+        u5 = res1.lineas[4].tiempo_acumulado_servicio/res1.clock
+        u6 = res1.lineas[5].tiempo_acumulado_servicio/res1.clock
+       
+        u11 = res2.lineas[0].tiempo_acumulado_servicio/res2.clock
+        u22 = res2.lineas[1].tiempo_acumulado_servicio/res2.clock
+        u33 = res2.lineas[2].tiempo_acumulado_servicio/res2.clock
+        u44 = res2.lineas[3].tiempo_acumulado_servicio/res2.clock
+        u55 = res2.lineas[4].tiempo_acumulado_servicio/res2.clock
+        u66 = res2.lineas[5].tiempo_acumulado_servicio/res2.clock
+       
+        u111 = res3.lineas[0].tiempo_acumulado_servicio/res3.clock
+        u222 = res3.lineas[1].tiempo_acumulado_servicio/res3.clock
+        u333 = res3.lineas[2].tiempo_acumulado_servicio/res3.clock
+        u444 = res3.lineas[3].tiempo_acumulado_servicio/res3.clock
+        u555 = res3.lineas[4].tiempo_acumulado_servicio/res3.clock
+        u656 = res3.lineas[5].tiempo_acumulado_servicio/res3.clock
+
+        serv1 = [u1,u11,u111]
+        serv2 = [u2,u22,u222]
+        serv3 = [u3,u33,u333]
+        serv4 = [u4,u44,u444]
+        serv5 = [u5,u55,u555]
+        serv6 = [u6,u66,u656]
+        
+        servidores = [serv1,serv2,serv3,serv4,serv5,serv6]
+
+        ancho_barras = 1.5
+        espacio_entre_grupos = 8
+        x=[2,4,6]
+        x_vals = []
+        for s in servidores:
+            colors=["#E2854F","#C13228","#CE520A"]
+            x=[i+espacio_entre_grupos for i in x]
+            b = plt.bar(x,s,width=ancho_barras)
+            [i.set_color(colors.pop(0)) for i in b]
+            x_vals.append(x[1]) 
+        plt.xticks(x_vals,["Servidor 1","Servidor 2", "Servidor 3", "Servidor 4", "Servidor 5", "Servidor 6"])
+        plt.legend(handles=[Patch(facecolor=i[0],edgecolor=i[0],label=i[1]) for i in list(zip(["#E2854F","#C13228","#CE520A"],["Corrida 1","Corrida 2","Corrida 3"]))], bbox_to_anchor=(0.65, -0.05), ncol=3)
+        plt.ylabel('u(t)')
+        plt.title('Utilización promedio de servidores u(t) - Grafico de barras')
+        plt.show()
+
+        
+        #Demora promedio del cliente d(t)
+        plt.plot(res1.clocks, res1.demora_acumulada_array, color = '#7C8788', label = 'Clientes corrida 1')
+        plt.plot(res2.clocks, res2.demora_acumulada_array, color = '#F9CF51', label = 'Clientes corrida 2')
+        plt.plot(res3.clocks, res3.demora_acumulada_array, color = '#E26D5C', label = 'Clientes corrida 3')
+        if res1.algoritmo == '32' or res1.algoritmo =='31':
+            plt.plot(res1.clocks, res1.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 1')
+            plt.plot(res2.clocks, res2.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 2' )
+            plt.plot(res3.clocks, res3.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 3')
+        plt.legend(loc = 'best')
+        plt.title('Demora promedio del cliente d(t)')
+        plt.xlabel('Reloj de la simulación')
+        plt.ylabel('Demora promedio del cliente d(t)')
+        plt.show()
+        
+        #Cantidad promedio de clientes en cola q(t):
+
+        fig3, axs3 = plt.subplots(2, 2)
+        
+        fig3.suptitle('Cantidad promedio de clientes en cola q(t)')
+
+        axs3[0, 0].plot(res1.clocks, res1.colas[0].cant_cli_acum_array, color = '#7C8788')
+        axs3[0, 0].plot(res2.clocks, res2.colas[0].cant_cli_acum_array, color = '#F9CF51')
+        axs3[0, 0].plot(res3.clocks, res3.colas[0].cant_cli_acum_array, color = '#E26D5C')
+        axs3[0, 0].set_title('Cola 0')
+        axs3[0, 0].set_ylabel('q(t)')
+
+        axs3[0, 1].plot(res1.clocks, res1.colas[1].cant_cli_acum_array, color = '#7C8788')
+        axs3[0, 1].plot(res2.clocks, res2.colas[1].cant_cli_acum_array, color = '#F9CF51')
+        axs3[0, 1].plot(res3.clocks, res3.colas[1].cant_cli_acum_array, color = '#E26D5C')
+        axs3[0, 1].set_title('Cola 1')
+            
+        axs3[1, 0].plot(res1.clocks, res1.colas[2].cant_cli_acum_array, color = '#7C8788')
+        axs3[1, 0].plot(res2.clocks, res2.colas[2].cant_cli_acum_array, color = '#F9CF51')
+        axs3[1, 0].plot(res3.clocks, res3.colas[2].cant_cli_acum_array, color = '#E26D5C')
+        axs3[1, 0].set_title('Cola 2')
+        axs3[1, 0].set_ylabel('q(t)')
+        axs3[1, 0].set_xlabel('Reloj de la simulación')
+            
+        axs3[1, 1].plot(res1.clocks, res1.colas[3].cant_cli_acum_array, color = '#7C8788')
+        axs3[1, 1].plot(res2.clocks, res2.colas[3].cant_cli_acum_array, color = '#F9CF51')
+        axs3[1, 1].plot(res3.clocks, res3.colas[3].cant_cli_acum_array, color = '#E26D5C')
+        axs3[1, 1].set_title('Cola 3')
+        axs3[1, 1].set_xlabel('Reloj de la simulación')
+            
+        plt.show()
+        
+        #Cantidad promedio de clientes en cola q(t) - Grafico de barras
+
+        q0 = res1.colas[0].cant_cli_acum/res1.clock
+        q1 = res1.colas[1].cant_cli_acum/res1.clock
+        q2 = res1.colas[2].cant_cli_acum/res1.clock
+        q3 = res1.colas[3].cant_cli_acum/res1.clock
+        q4 = res2.colas[0].cant_cli_acum/res2.clock
+        q5 = res2.colas[1].cant_cli_acum/res2.clock
+        q6 = res2.colas[2].cant_cli_acum/res2.clock
+        q7 = res2.colas[3].cant_cli_acum/res2.clock
+        q8 = res3.colas[0].cant_cli_acum/res3.clock
+        q9 = res3.colas[1].cant_cli_acum/res3.clock
+        q10 = res3.colas[2].cant_cli_acum/res3.clock
+        q11 = res3.colas[3].cant_cli_acum/res3.clock
+        
+        cola0 =[q0, q4 ,q8]
+        cola1 = [q1, q5, q9]
+        cola2 = [q2, q6, q10]
+        cola3 = [q3, q7, q11]
+        colas = [cola0,cola1,cola2,cola3]
+
+        ancho_barras = 1.5
+        espacio_entre_grupos = 8
+        x=[2,4,6]
+        x_vals = []
+        for c in colas:
+            colors=["#E2854F","#C13228","#CE520A"]
+            x=[i+espacio_entre_grupos for i in x]
+            b = plt.bar(x,c,width=ancho_barras)
+            [i.set_color(colors.pop(0)) for i in b]
+            x_vals.append(x[1]) 
+        plt.xticks(x_vals,["Cola 0","Cola 1", "Cola 2", "Cola 3"])
+        plt.legend(handles=[Patch(facecolor=i[0],edgecolor=i[0],label=i[1]) for i in list(zip(["#E2854F","#C13228","#CE520A"],["Corrida 1","Corrida 2","Corrida 3"]))])
+        plt.ylabel('q(t)')
+        plt.title('Cantidad promedio de clientes en cola q(t) - Grafico de barras')
+        plt.show()
+
 
 #Main:
 tiempo_terminacion = eval(input('Ingrese tiempo de fin de la simulacion: '))
@@ -523,10 +661,21 @@ ans = input('¿Desea ver un detalle de la simulacion paso a paso? (S/N) \n')
 
 
 if ans == 'S' or ans == 's':
-    sim = Simulacion(True, algoritmo)
-    sim.programa_principal()
+    sim1 = Simulacion(True, algoritmo)
+    res1 = sim1.programa_principal()
+    sim2 = Simulacion(True, algoritmo)
+    res2 = sim2.programa_principal()
+    sim3 = Simulacion(True, algoritmo)
+    res3 = sim3.programa_principal()
+    plots(res1, res2, res3)
 
 else:
-    sim = Simulacion(False, algoritmo)
-    sim.programa_principal()
+    sim1 = Simulacion(False, algoritmo)
+    res1 = sim1.programa_principal()
+    sim2 = Simulacion(False, algoritmo)
+    res2 = sim2.programa_principal()
+    sim3 = Simulacion(False, algoritmo)
+    res3 = sim3.programa_principal()
+    plots(res1, res2, res3)
+
 
