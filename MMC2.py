@@ -420,6 +420,9 @@ def plots(res1, res2, res3):
         
         fig, axs = plt.subplots(3, 2)
 
+        fig.suptitle('Tiempo acumulado de servicio')
+
+        
         axs[0, 0].plot(res1.clocks, res1.lineas[0].tiempo_acumulado_servicio_array, color = '#7C8788', label = 'Corrida 1')
         axs[0, 0].plot(res2.clocks, res2.lineas[0].tiempo_acumulado_servicio_array, color = '#F9CF51', label = 'Corrida 2')
         axs[0, 0].plot(res3.clocks, res3.lineas[0].tiempo_acumulado_servicio_array, color = '#E26D5C', label = 'Corrida 3')
@@ -568,15 +571,34 @@ def plots(res1, res2, res3):
         plt.plot(res1.clocks, res1.demora_acumulada_array, color = '#7C8788', label = 'Clientes corrida 1')
         plt.plot(res2.clocks, res2.demora_acumulada_array, color = '#F9CF51', label = 'Clientes corrida 2')
         plt.plot(res3.clocks, res3.demora_acumulada_array, color = '#E26D5C', label = 'Clientes corrida 3')
-        if res1.algoritmo == '32' or res1.algoritmo =='31':
-            plt.plot(res1.clocks, res1.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 1')
-            plt.plot(res2.clocks, res2.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 2' )
-            plt.plot(res3.clocks, res3.demora_acumulada_prioridad_array, color = '#E26D5C', label = 'Clientes Prioritarios corrida 3')
         plt.legend(loc = 'best')
-        plt.title('Demora promedio del cliente d(t)')
+        plt.title('Demora promedio d(t) de los clientes')
         plt.xlabel('Reloj de la simulación')
         plt.ylabel('Demora promedio del cliente d(t)')
         plt.show()
+
+        if res1.algoritmo == '32' or res1.algoritmo =='31':
+            demora_acumulada_array = []
+            demora_acumulada_array_prioridad = []
+            clocks1 = []
+            clocks2 = []
+            len_demoras = min([len(res1.demora_acumulada_array), len(res2.demora_acumulada_array), len(res3.demora_acumulada_array)])
+            len_demoras_prioridad = min([len(res1.demora_acumulada_prioridad_array), len(res2.demora_acumulada_prioridad_array), len(res3.demora_acumulada_prioridad_array)])
+            for i in range (0, len_demoras):
+                demora_acumulada_array_prioridad.append((res1.demora_acumulada_prioridad_array[i]+res2.demora_acumulada_prioridad_array[i]+res3.demora_acumulada_prioridad_array[i])/3)
+                clocks1.append((res1.clocks[i] + res2.clocks[i] + res3.clocks[i])/3)
+            for i in range (0, len_demoras_prioridad):
+                demora_acumulada_array.append((res1.demora_acumulada_array[i]+res2.demora_acumulada_array[i]+res3.demora_acumulada_array[i])/3)
+                clocks2.append((res1.clocks[i] + res2.clocks[i] + res3.clocks[i])/3)
+            
+            plt.plot(clocks2, demora_acumulada_array, color = '#F9CF51', label = 'Todos los clientes - promedio' )
+            plt.plot(clocks1, demora_acumulada_array_prioridad, color = '#E26D5C', label = 'Clientes Prioritarios - Promedio')
+
+            plt.legend(loc = 'best')
+            plt.title('Demora promedio d(t) de clientes totales vs clientes prioritarios')
+            plt.xlabel('Reloj de la simulación')
+            plt.ylabel('Demora promedio del cliente d(t)')
+            plt.show()
         
         #Cantidad promedio de clientes en cola q(t):
 
@@ -584,30 +606,35 @@ def plots(res1, res2, res3):
         
         fig3.suptitle('Cantidad promedio de clientes en cola q(t)')
 
-        axs3[0, 0].plot(res1.clocks, res1.colas[0].cant_cli_acum_array, color = '#7C8788')
-        axs3[0, 0].plot(res2.clocks, res2.colas[0].cant_cli_acum_array, color = '#F9CF51')
-        axs3[0, 0].plot(res3.clocks, res3.colas[0].cant_cli_acum_array, color = '#E26D5C')
+        axs3[0, 0].plot(res1.clocks, res1.colas[0].cant_cli_acum_array, color = '#7C8788', label = 'Corrida 1')
+        axs3[0, 0].plot(res2.clocks, res2.colas[0].cant_cli_acum_array, color = '#F9CF51', label = 'Corrida 2')
+        axs3[0, 0].plot(res3.clocks, res3.colas[0].cant_cli_acum_array, color = '#E26D5C', label = 'Corrida 3')
         axs3[0, 0].set_title('Cola 0')
         axs3[0, 0].set_ylabel('q(t)')
 
-        axs3[0, 1].plot(res1.clocks, res1.colas[1].cant_cli_acum_array, color = '#7C8788')
-        axs3[0, 1].plot(res2.clocks, res2.colas[1].cant_cli_acum_array, color = '#F9CF51')
-        axs3[0, 1].plot(res3.clocks, res3.colas[1].cant_cli_acum_array, color = '#E26D5C')
+        axs3[0, 1].plot(res1.clocks, res1.colas[1].cant_cli_acum_array, color = '#7C8788', label = 'Corrida 1')
+        axs3[0, 1].plot(res2.clocks, res2.colas[1].cant_cli_acum_array, color = '#F9CF51', label = 'Corrida 2')
+        axs3[0, 1].plot(res3.clocks, res3.colas[1].cant_cli_acum_array, color = '#E26D5C', label = 'Corrida 3')
         axs3[0, 1].set_title('Cola 1')
             
-        axs3[1, 0].plot(res1.clocks, res1.colas[2].cant_cli_acum_array, color = '#7C8788')
-        axs3[1, 0].plot(res2.clocks, res2.colas[2].cant_cli_acum_array, color = '#F9CF51')
-        axs3[1, 0].plot(res3.clocks, res3.colas[2].cant_cli_acum_array, color = '#E26D5C')
+        axs3[1, 0].plot(res1.clocks, res1.colas[2].cant_cli_acum_array, color = '#7C8788', label = 'Corrida 1')
+        axs3[1, 0].plot(res2.clocks, res2.colas[2].cant_cli_acum_array, color = '#F9CF51', label = 'Corrida 2')
+        axs3[1, 0].plot(res3.clocks, res3.colas[2].cant_cli_acum_array, color = '#E26D5C', label = 'Corrida 3')
         axs3[1, 0].set_title('Cola 2')
         axs3[1, 0].set_ylabel('q(t)')
         axs3[1, 0].set_xlabel('Reloj de la simulación')
             
-        axs3[1, 1].plot(res1.clocks, res1.colas[3].cant_cli_acum_array, color = '#7C8788')
-        axs3[1, 1].plot(res2.clocks, res2.colas[3].cant_cli_acum_array, color = '#F9CF51')
-        axs3[1, 1].plot(res3.clocks, res3.colas[3].cant_cli_acum_array, color = '#E26D5C')
+        axs3[1, 1].plot(res1.clocks, res1.colas[3].cant_cli_acum_array, color = '#7C8788', label = 'Corrida 1')
+        axs3[1, 1].plot(res2.clocks, res2.colas[3].cant_cli_acum_array, color = '#F9CF51', label = 'Corrida 2')
+        axs3[1, 1].plot(res3.clocks, res3.colas[3].cant_cli_acum_array, color = '#E26D5C', label = 'Corrida 3')
         axs3[1, 1].set_title('Cola 3')
         axs3[1, 1].set_xlabel('Reloj de la simulación')
-            
+
+        axs3[0, 0].legend(loc = 'best')
+        axs3[0, 1].legend(loc = 'best')
+        axs3[1, 0].legend(loc = 'best')
+        axs3[1, 1].legend(loc = 'best')
+        
         plt.show()
         
         #Cantidad promedio de clientes en cola q(t) - Grafico de barras
